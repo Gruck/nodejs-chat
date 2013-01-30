@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>Simple Chat with NodeJS</title>
+        <link rel="shortcut icon" href="img/favicon.png" />
+        <link rel="stylesheet" href="css/main.css" />
+	<script src="js/jquery.min.js"></script>
+        <script src="/socket.io/socket.io.js"></script>
+    </head>
+    <body>
+        <h1 class="title">Welcome </h1>
+        <div id="Users">
+            <strong>Users</strong>
+            <div class="userList"></div>
+        </div>
+        <div id="senderBox">
+            <form id="sendForm">
+                <label>Message: </label>
+                <input type="text" name="input_message" id="input_message"/>
+            </form>
+        </div>
+        <div id="msgBox">
+        </div>
+        <script type="text/javascript">
+            var user = "";
+            $('document').ready(function(){
+                user = requireUser();
+                var socket = io.connect('/');
+                socket.on('connect',function(){
+                    socket.emit('register',{'username':user});
+                })
+                .on('retry',function(){
+                    user = requireUser( true );
+                    socket.emit('register',{'username':user});
+                })
+                .on('nick',function(data){
+                    $('.title').html( 'Welcome ' + data.username );
+                    user = data.username ;
+                })
+                .on('message',function(data){
+                    $('#msgBox').prepend('<div><strong>'+data.user+':</strong> '+data.message+'</div>');
+                })
+                .on('userList',function(data){
+                    $('.userList').html('');
+                    $.each( data , function( index , value ){
+                        $('.userList').append( '[' + value + ']' );
+                    });
+                });
+                $('#sendForm').submit(function(e){
+                    e.preventDefault();
+                    if( socket.socket.connected ){
+                        msg = $('#input_message').val();
+                        socket.emit( 'message' , {'user':user,'str':msg} );
+                        $('#input_message').val('');
+                    }
+                });
+            });
+            
+            function requireUser( data ){
+                var valid = false;
+                while( !valid ){
+                    if( data == true ){
+                        var username = $.trim( prompt("Registered, please retry... Username?") );
+                    }else{
+                        var username = $.trim( prompt("Username?") );
+                    }
+                    if( username.length > 2 ){
+                        valid = true;
+                    }
+                }
+                return username;
+            }
+        </script>
+    </body>
+</html>
